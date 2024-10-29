@@ -7,7 +7,7 @@ exception_handlers={
     418: lambda req, exc: Titled("418: I'm a teapot!")
 }
 
-app,rt = fast_app(pico=True,exception_handlers=exception_handlers)
+app,rt = fast_app(pico=True,exception_handlers=exception_handlers, sess_https_only:True)
 
 # Add health check route
 @rt("/health")
