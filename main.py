@@ -40,174 +40,65 @@ def get():
     return PlainTextResponse("OK", status_code=200)
 
 
-def make_article(title):
-    """Helper to create sample article content using PicoCSS article component"""
-    return Article(
-        H4(title),
-        P("Sample content using PicoCSS Article component"),
-        footer=Small("Footer text")
-    )
 
-@rt('/')
+@rt("/")
 def get():
-    """Main layout handler"""
-    return (
-        Title('Responsive Layout'),
-        Body(
-            Style('''
-                /* Base mobile-first styles */
-                me {
-                    display: grid;
-                    min-height: 100vh;
-                    grid-template-areas:
-                        "nav"
-                        "main"
-                        "footer";
-                    grid-template-rows: auto 1fr auto;
-                    gap: var(--pico-spacing);
-                    background: var(--pico-background-color);
-                }
-
-                /* Sidebar base styles */
-                me .sidebar {
-                    position: fixed;
-                    top: var(--pico-nav-height, 4rem);
-                    height: calc(100vh - var(--pico-nav-height, 4rem));
-                    width: min(300px, 80vw);
-                    background: var(--pico-background-color);
-                    padding: var(--pico-spacing);
-                    z-index: 90;
-                    overflow-y: auto;
-                    transition: transform 0.3s var(--pico-transition-timing, ease);
-                }
-
-                /* Position sidebars off-screen by default on mobile */
-                me .aside_left {
-                    left: 0;
-                    transform: translateX(-100%);
-                    border-right: var(--pico-border-width) solid var(--pico-muted-border-color);
-                }
-
-                me .aside_right {
-                    right: 0;
-                    transform: translateX(100%);
-                    border-left: var(--pico-border-width) solid var(--pico-muted-border-color);
-                }
-
-                /* Show sidebar when active */
-                me .sidebar.active {
-                    transform: translateX(0);
-                    box-shadow: var(--pico-card-box-shadow);
-                }
-
-                /* Desktop layout */
-                @media (min-width: 769px) {
-                    me {
-                        grid-template-areas:
-                            "nav    nav    nav"
-                            "left  main   right"
-                            "footer footer footer";
-                        grid-template-columns: 300px minmax(300px, 800px) 300px;
-                        padding: 0 max(var(--pico-spacing), calc((100vw - 1400px) / 2));
-                    }
-
-                    me .sidebar {
-                        position: static;
-                        transform: none;
-                        height: auto;
-                        box-shadow: none;
-                        border: var(--pico-border-width) solid var(--pico-muted-border-color);
-                        border-radius: var(--pico-border-radius);
-                    }
-
-                    /* Hide toggle buttons on desktop */
-                    me .sidebar-toggle {
-                        display: none;
-                    }
-                }
-
-                /* Navigation styles */
-                me nav {
-                    position: sticky;
-                    top: 0;
-                    grid-area: nav;
-                    background: var(--pico-background-color);
-                    padding: var(--pico-spacing);
-                    z-index: 100;
-                    border-bottom: var(--pico-border-width) solid var(--pico-muted-border-color);
-                }
-
-                me .nav-content {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                }
-
-                /* Main content area */
-                me main {
-                    grid-area: main;
-                    padding: var(--pico-spacing);
-                    display: flex;
-                    flex-direction: column;
-                    gap: var(--pico-spacing);
-                }
-
-                /* Footer styles */
-                me footer {
-                    grid-area: footer;
-                    padding: var(--pico-spacing);
-                    text-align: center;
-                    border-top: var(--pico-border-width) solid var(--pico-muted-border-color);
-                }
-            '''),
-
-            # Navigation
-            Nav(Ul(Li(Img(src='static/logo.png', alt="EventOS", width="150", height="auto"))),
-                Ul( Li(Button(get_icon('login'),"Sign In", hx_get="/login", hx_target="body", hx_push_url="true", cls="outline")),
-                    Li(Button(get_icon('register'),"Register", hx_get="/register", hx_target="body", hx_push_url="true", cls="outline contrast")),
-                    cls="container")
+    layout = Div(
+        Header(
+            Hgroup(
+                H1("Site Title"),
+                H2("A holy grail layout using PicoCSS")
             ),
-
-            # Left Sidebar
-            Aside(
-                {'id': 'left-sidebar', 'class': 'sidebar aside_left'},
-                H3("Left Sidebar"),
-                Nav(
-                    Ul(
-                        Li(A("Home", href="#")),
-                        Li(A("About", href="#")),
-                        Li(A("Contact", href="#"))
-                    )
-                ),
-                make_article("Left Content")
+            cls="container"
+        ),
+        Nav(
+            Ul(
+                Li(A("Navigation 1", href="#", role="button")),
+                Li(A("Navigation 2", href="#", role="button")),
+                Li(A("Navigation 3", href="#", role="button"))
             ),
-
-            # Main Content
-            Main(
-                *(make_article(f"Main Article {i}") for i in range(1, 4))
+            cls="container"
+        ),
+        Main(
+            Article(
+                H3("Main Content"),
+                P("This is the main content area...")
             ),
-
-            # Right Sidebar
-            Aside(
-                {'id': 'right-sidebar', 'class': 'sidebar aside_right'},
-                H3("Right Sidebar"),
-                make_article("Right Content")
+            cls="container"
+        ),
+        Aside(
+            Article(
+                H4("Sidebar"),
+                P("Secondary content or additional navigation can go here.")
             ),
-
-            # Footer
-            Footer(
-                P("© 2024 Layout Demo", cls="text-center")
-            )
-        )
+            cls="container"
+        ),
+        Footer(
+            P("Footer content here"),
+            cls="container"
+        ),
+        cls="holy-grail"
     )
 
-@rt('/toggle/{side}')
-def post(side: str):
-    """Toggle sidebar active state"""
-    # This handler just toggles the 'active' class
-    # HTMX will handle the class swap automatically
-    return "active"
-
+    return (
+        Style("""
+            .holy-grail { display: grid; min-height: 100vh;
+                grid-template-areas: "header" "nav" "main" "aside" "footer"; }
+            @media (min-width: 768px) {
+                .holy-grail { grid-template-columns: 200px 1fr 200px;
+                    grid-template-areas: "header header header"
+                                       "nav    main   aside"
+                                       "footer footer footer"; }
+            }
+            header { grid-area: header; }
+            nav { grid-area: nav; }
+            main { grid-area: main; }
+            aside { grid-area: aside; }
+            footer { grid-area: footer; }
+            .container { padding: var(--spacing); }
+        """),
+        layout
+    )
 
 
 if __name__ == "__main__":
