@@ -39,6 +39,17 @@ def get():
     # Return plain text "OK" with 200 status code
     return PlainTextResponse("OK", status_code=200)
 
+from fasthtml.common import *
+
+def make_article(title):
+    """Create a sample article with lorem ipsum content"""
+    return Article(
+        H3(title),
+        P("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum nec purus tellus. Duis volutpat tellus vitae diam ultricies, quis sollicitudin eros ultricies."),
+        P("Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris."),
+        Button("Read more", cls="outline")
+    )
+
 def layout():
     return (
         Title('Layout'),
@@ -48,34 +59,37 @@ def layout():
                 me {
                     min-height: 100vh;
                     display: grid;
-                    grid-template-columns: 1fr 300px minmax(300px, 800px) 300px 1fr;
+                    grid-template-columns: 300px minmax(300px, 800px) 300px;
                     grid-template-rows: auto 1fr auto;
                     grid-template-areas:
-                        "navbar navbar navbar navbar navbar"
-                        "padding_left aside_left main aside_right padding_right"
-                        "footer footer footer footer footer";
+                        "navbar navbar navbar"
+                        "aside_left main aside_right"
+                        "footer footer footer";
                     grid-gap: 1rem;
+                    padding: 0 max(1rem, calc((100vw - 1400px) / 2));
                 }
 
-                /* Desktop with less padding */
-                @media (max-width: 1600px) {
-                    me {
-                        grid-template-columns: 20px 300px minmax(300px, 800px) 300px 20px;
-                    }
+                /* Hide sidebars when collapsed */
+                me.hide-left {
+                    grid-template-areas:
+                        "navbar navbar navbar"
+                        "main main aside_right"
+                        "footer footer footer";
+                }
+                me.hide-right {
+                    grid-template-areas:
+                        "navbar navbar navbar"
+                        "aside_left main main"
+                        "footer footer footer";
+                }
+                me.hide-both {
+                    grid-template-areas:
+                        "navbar navbar navbar"
+                        "main main main"
+                        "footer footer footer";
                 }
 
-                /* Tablet - no padding */
-                @media (max-width: 1200px) {
-                    me {
-                        grid-template-columns: 300px minmax(300px, 800px) 300px;
-                        grid-template-areas:
-                            "navbar navbar navbar"
-                            "aside_left main aside_right"
-                            "footer footer footer";
-                    }
-                }
-
-                /* Mobile */
+                /* Mobile adjustments */
                 @media (max-width: 768px) {
                     me {
                         grid-template-columns: 1fr;
@@ -83,74 +97,44 @@ def layout():
                             "navbar"
                             "main"
                             "footer";
+                        padding: 0;
                     }
-
-                    me .aside_left,
-                    me .aside_right {
-                        position: fixed;
-                        top: 4rem;
-                        bottom: 0;
-                        width: 300px;
-                        background: white;
-                        transition: transform 0.3s ease;
-                        z-index: 100;
-                    }
-
-                    me .aside_left {
-                        left: 0;
-                        transform: translateX(-100%);
-                    }
-
-                    me .aside_right {
-                        right: 0;
-                        transform: translateX(100%);
-                    }
-
-                    me .aside_left.show { transform: translateX(0); }
-                    me .aside_right.show { transform: translateX(0); }
                 }
             '''),
 
-            # Navigation with toggle buttons for mobile
             Nav(
                 Style('''
                     me {
                         position: sticky;
                         top: 0;
                         grid-area: navbar;
-                        background: white;
+                        background: var(--pico-background-color);
                         padding: 1rem;
                         display: flex;
                         justify-content: space-between;
                         align-items: center;
                         z-index: 101;
-                    }
-
-                    @media (min-width: 769px) {
-                        me .mobile-toggles { display: none; }
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
                     }
                 '''),
-                Div('Layout Test Builder'),
-                # Mobile toggle buttons
+                H2("Layout Test"),
                 Div(
-                    {'class': 'mobile-toggles'},
-                    Button('☰ Left',
-                        hx_post='/toggle-left',
-                        hx_target='.aside_left',
-                        hx_swap='classes toggle:show'
-                    ),
-                    Button('Right ☰',
-                        hx_post='/toggle-right',
-                        hx_target='.aside_right',
-                        hx_swap='classes toggle:show'
+                    Group(
+                        Button("Toggle Left",
+                            hx_post="/toggle/left",
+                            hx_target="body",
+                            hx_swap="classes toggle:hide-left"
+                        ),
+                        Button("Toggle Right",
+                            hx_post="/toggle/right",
+                            hx_target="body",
+                            hx_swap="classes toggle:hide-right"
+                        ),
+                        cls="outline"
                     )
                 )
             ),
 
-            # Left padding (only shows on very wide screens)
-            Div(Style('me { grid-area: padding_left; }'), {'class': 'padding_left'}),
-
-            # Left sidebar
             Aside(
                 Style('''
                     me {
@@ -159,28 +143,29 @@ def layout():
                         position: sticky;
                         align-self: start;
                         grid-area: aside_left;
-                        background: white;
+                        background: var(--pico-background-color);
                         padding: 1rem;
                         overflow-y: auto;
                     }
                 '''),
-                {'class': 'aside_left'},
-                'This is a Left aside'
+                H3("Left Sidebar"),
+                make_article("Left Article 1"),
+                make_article("Left Article 2")
             ),
 
-            # Main content
             Main(
                 Style('''
                     me {
                         grid-area: main;
                         padding: 1rem;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 1rem;
                     }
                 '''),
-                H1('Main'),
-                P('This is the main content')
+                *(make_article(f"Main Article {i}") for i in range(1, 6))
             ),
 
-            # Right sidebar
             Aside(
                 Style('''
                     me {
@@ -189,40 +174,34 @@ def layout():
                         position: sticky;
                         align-self: start;
                         grid-area: aside_right;
-                        background: white;
+                        background: var(--pico-background-color);
                         padding: 1rem;
                         overflow-y: auto;
                     }
                 '''),
-                {'class': 'aside_right'},
-                'This is a Right aside'
+                H3("Right Sidebar"),
+                make_article("Right Article 1"),
+                make_article("Right Article 2")
             ),
 
-            # Right padding (only shows on very wide screens)
-            Div(Style('me { grid-area: padding_right; }'), {'class': 'padding_right'}),
-
-            # Footer
             Footer(
                 Style('''
                     me {
                         grid-area: footer;
                         padding: 1rem;
                         text-align: center;
+                        background: var(--pico-background-color);
                     }
                 '''),
-                'Footer'
+                P("© 2024 Layout Test")
             )
         )
     )
 
-# Routes for the toggle buttons
-@rt('/toggle-left')
-def post():
-    return ''
-
-@rt('/toggle-right')
-def post():
-    return ''
+# Toggle handlers
+@rt('/toggle/{side}')
+def post(side: str):
+    return ""
 
 # Home Page
 @rt('/')
