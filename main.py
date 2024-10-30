@@ -42,11 +42,22 @@ def get():
 def layout():
     return (
         Title('Layout'),
-        Body(Style('me {display: grid; grid-template-columns: 1fr 1fr 1fr; grid-gap: 1rem;}'),
-            Nav('Layout Test Builder'),
-            Aside('this is an aside'),
-            Main(H1('main')),
-            Footer('footer')
+        Body(Style('''me {
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 1fr 300px 1fr 300px 1fr;
+            grid-template-rows: auto 1fr auto;
+            grid-template-areas:
+                "navbar  navbar     navbar navbar      navbar"
+                "padding aside_left main   aside_right padding"
+                "footer  footer     footer footer      footer";
+            grid-gap: 1rem;}
+            '''),
+            Nav(Style('me {gird-area: navbar}'),'Layout Test Builder'),
+            Aside(Style('me {gird-area: aside_left}'),'this is an aside'),
+            Main(Style('me {gird-area: main}'),H1('main')),
+            Aside(Style('me {gird-area: aside_right}'),'this is an a right aside'),
+            Footer(Style('me {gird-area: footer}'),'footer')
         )
     )
 
