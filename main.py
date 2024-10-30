@@ -165,7 +165,7 @@ def get():
             Nav(Ul(Li(Img(src='static/logo.png', alt="EventOS", width="150", height="auto"))),
                 Ul( Li(Button(get_icon('login'),"Sign In", hx_get="/login", hx_target="body", hx_push_url="true", cls="outline")),
                     Li(Button(get_icon('register'),"Register", hx_get="/register", hx_target="body", hx_push_url="true", cls="outline contrast")),
-                    cls="container"
+                    cls="container")
             ),
 
             # Left Sidebar
