@@ -53,11 +53,11 @@ def layout():
                 "footer  footer     footer footer      footer";
             grid-gap: 1rem;}
             '''),
-            Nav(Style('me {gird-area: navbar}'),'Layout Test Builder'),
-            Aside(Style('me {gird-area: aside_left}'),'this is an aside'),
-            Main(Style('me {gird-area: main}'),H1('main')),
-            Aside(Style('me {gird-area: aside_right}'),'this is an a right aside'),
-            Footer(Style('me {gird-area: footer}'),'footer')
+            Nav(Style('me {grid-area: navbar}'),'Layout Test Builder'),
+            Aside(Style('me {grid-area: aside_left}'),'this is an aside'),
+            Main(Style('me {grid-area: main}'),H1('main')),
+            Aside(Style('me {grid-area: aside_right}'),'this is an a right aside'),
+            Footer(Style('me {grid-area: footer}'),'footer')
         )
     )
 
