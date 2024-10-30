@@ -57,7 +57,7 @@ def layout():
             Div(Style('me {grid-area: padding_left}'),'EMPTY'),
             Aside(Style('me {height: calc(100vh-4rem); top: 4rem; position: stickey; align-self: start; grid-area: aside_left}'),'this is a Left aside'),
             Main(Style('me {grid-area: main}'),H1('main')),
-            Aside(Style('me {height: calc(100vh-4rem); top: 4rem; position: stickey; align-self: start; grid-area: aside_right}'),'this is a Right aside'
+            Aside(Style('me {height: calc(100vh-4rem); top: 4rem; position: stickey; align-self: start; grid-area: aside_right}'),'this is a Right aside'),
             Div(Style('me {grid-area: padding_right}'),'EMPTY'),
             Footer(Style('me {grid-area: footer}'),'footer')
         )
