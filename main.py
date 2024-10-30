@@ -159,14 +159,14 @@ def get():
                     hx_swap="innerHTML")
             ),
             # Coverage section
-            Hgroup(H2('Coverage'),
-                Section(
-                    Div(Progress()),
-                    id="coverage",
-                    hx_get="/sections/coverage",
-                    hx_trigger="load",
-                    hx_swap="innerHTML")
-            ),
+            # Hgroup(H2('Coverage'),
+            #     Section(
+            #         Div(Progress()),
+            #         id="coverage",
+            #         hx_get="/sections/coverage",
+            #         hx_trigger="load",
+            #         hx_swap="innerHTML")
+            # ),
             # Pricing section
             Hgroup(H2('Pricing'),
                 Section(
@@ -754,164 +754,7 @@ def get(annual: bool = False):
     """Single route handles both initial load and toggle"""
     return create_pricing(annual)
 
-# Using Pico CSS color variables for better theme consistency
-STATUS_COLORS = {
-    'live': {
-        'name': 'Live',
-        'fill': '#3C71F7'  # Blue
-    },
-    'target_2025': {
-        'name': 'Target 2025',
-        'fill': '#8999F9'  # Light Blue
-    },
-    'target_2026': {
-        'name': 'Target 2026',
-        'fill': '#D0D2FA'  # Lightest blue
-    }
-}
 
-COLORS = [Input(type="color", value=o) for o in ('#3C71F7', '#8999F9', '#D0D2FA')]
-
-
-
-@lru_cache(maxsize=32)
-def create_us_map(state_data_key: str):
-    """Creates a cached US map with integrated legend."""
-    state_data = dict(eval(state_data_key))
-
-    # Load base SVG
-    base_svg = Path('static/US_Map.svg').read_text()
-
-    # Generate state styles - now with default handling
-    state_styles = []
-    all_states = set([
-        'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
-        'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
-        'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
-        'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
-        'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
-        'MEE', 'DC'
-    ])
-
-    # Add styles for all states, defaulting to target_2026 if not specified
-    for state in all_states:
-        status = state_data.get(state, 'target_2026')  # Default to 2026
-        state_code = state.lower()
-        state_styles.append(
-            f".{state_code} {{fill: {STATUS_COLORS[status]['fill']}}}"
-        )
-
-    # Enhanced base styles with Pico CSS variables
-    base_styles = """
-        .state {
-            fill: var(--pico-card-sectioning-background-color);
-            transition: fill 0.3s ease;  /* Smooth color transitions */
-        }
-        .state:hover {
-            fill-opacity: 0.8;  /* Subtle hover effect */
-        }
-        .borders, .state {
-            stroke: var(--pico-contrast-background);
-            stroke-width: 1;
-            stroke-linejoin: round;
-        }
-        .dccircle {
-            display: yes;
-            stroke: var(--pico-contrast-background);
-            stroke-width: 1;
-        }
-        .separator1 {
-            stroke: var(--pico-contrast-background);
-            stroke-width: 1;
-        }
-        /* Enhanced legend styles */
-        .legend-box {
-            fill: var(--pico-background-color);
-            stroke: var(--pico-contrast-background);
-            stroke-width: 1;
-            rx: 6;  /* Rounded corners matching Pico */
-            opacity: 0.95;
-        }
-        .legend-text {
-            font-family: var(--pico-font-family);
-            font-size: var(--pico-font-size);
-            font-weight: 500;
-            fill: var(--pico-color);
-        }
-        .legend-sample {
-            stroke: var(--pico-contrast-background);
-            stroke-width: 1;
-            rx: 3;
-        }
-    """
-
-    # Create legend elements with improved positioning
-    legend_elements = []
-
-    # Add legend background
-    legend_elements.append(
-        '<rect class="legend-box" x="820" y="400" width="130" height="100"/>'
-    )
-
-    # Add legend items with enhanced spacing
-    for i, (status, info) in enumerate(STATUS_COLORS.items()):
-        y = 420 + (i * 30)  # Increased spacing between items
-        legend_elements.append(f"""
-            <rect class="legend-sample" x="830" y="{y}" width="18" height="18" fill="{info['fill']}"/>
-            <text class="legend-text" x="858" y="{y + 13}">{info['name']}</text>
-        """)
-
-    # Update tooltips with enhanced information
-    svg = base_svg
-    for state in all_states:
-        status = state_data.get(state, 'target_2026')
-        tooltip_text = f"{state} - {STATUS_COLORS[status]['name']}"
-        svg = svg.replace(
-            f'<title>{state}</title>',
-            f'<title>{tooltip_text}</title>'
-        )
-
-    # Make SVG responsive
-    svg = (svg.replace('width="959"', 'width="100%"')
-              .replace('height="593"', 'height="100%"')
-              .replace('<svg', '<svg preserveAspectRatio="xMidYMid meet"'))
-
-    if 'viewBox' not in svg:
-        svg = svg.replace('<svg', '<svg viewBox="0 0 959 593"')
-
-    # Insert styles and legend
-    svg = svg.replace(
-        '</style>',
-        f'{base_styles}\n{" ".join(state_styles)}\n</style>'
-    ).replace(
-        '</svg>',
-        f'{"".join(legend_elements)}</svg>'
-    )
-
-    return NotStr(svg)
-
-# Route handler with improved styling
-@rt('/sections/coverage/map')
-def get():
-    state_data = {
-        'IL': 'live',
-        'NY': 'target_2025',
-        'TX': 'target_2025',
-        'CA': 'target_2025',
-        'FL': 'target_2025',
-        'MA': 'target_2026',
-        'CO': 'target_2026',
-        'MI': 'target_2026',
-        'WI': 'target_2026',
-    }
-
-    state_data_key = str(frozenset(state_data.items()))
-
-    return Article(
-        Div(create_us_map(state_data_key),
-            style="width: 100%; max-width: 1200px; margin: 0 auto;"),
-        Footer(Grid(*COLORS))
-            )
 
 
 if __name__ == "__main__":
