@@ -39,14 +39,11 @@ def get():
     # Return plain text "OK" with 200 status code
     return PlainTextResponse("OK", status_code=200)
 
-from fasthtml.common import *
 
 def make_article(title):
-    """Create a sample article with lorem ipsum content"""
     return Article(
         H3(title),
-        P("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum nec purus tellus. Duis volutpat tellus vitae diam ultricies, quis sollicitudin eros ultricies."),
-        P("Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris."),
+        P("Lorem ipsum dolor sit amet..."),
         Button("Read more", cls="outline")
     )
 
@@ -55,7 +52,6 @@ def layout():
         Title('Layout'),
         Body(
             Style('''
-                /* Base layout */
                 me {
                     min-height: 100vh;
                     display: grid;
@@ -69,27 +65,25 @@ def layout():
                     padding: 0 max(1rem, calc((100vw - 1400px) / 2));
                 }
 
-                /* Hide sidebars when collapsed */
-                me.hide-left {
-                    grid-template-areas:
-                        "navbar navbar navbar"
-                        "main main aside_right"
-                        "footer footer footer";
-                }
-                me.hide-right {
-                    grid-template-areas:
-                        "navbar navbar navbar"
-                        "aside_left main main"
-                        "footer footer footer";
-                }
-                me.hide-both {
-                    grid-template-areas:
-                        "navbar navbar navbar"
-                        "main main main"
-                        "footer footer footer";
+                me .sidebar {
+                    height: calc(100vh - 4rem);
+                    top: 4rem;
+                    position: sticky;
+                    align-self: start;
+                    padding: 1rem;
+                    overflow-y: auto;
+                    transition: all 0.3s ease;
                 }
 
-                /* Mobile adjustments */
+                me .sidebar.collapsed {
+                    width: 0;
+                    padding: 0;
+                    overflow: hidden;
+                }
+
+                me .aside_left { grid-area: aside_left; }
+                me .aside_right { grid-area: aside_right; }
+
                 @media (max-width: 768px) {
                     me {
                         grid-template-columns: 1fr;
@@ -99,6 +93,15 @@ def layout():
                             "footer";
                         padding: 0;
                     }
+
+                    me .sidebar {
+                        position: fixed;
+                        z-index: 100;
+                        background: var(--pico-background-color);
+                    }
+
+                    me .aside_left:not(.collapsed) { left: 0; }
+                    me .aside_right:not(.collapsed) { right: 0; }
                 }
             '''),
 
@@ -110,47 +113,44 @@ def layout():
                         grid-area: navbar;
                         background: var(--pico-background-color);
                         padding: 1rem;
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
                         z-index: 101;
                         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
                     }
+                    me .nav-content {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        container-type: inline-size;
+                    }
+                    me button {
+                        padding: 0.5rem;
+                        margin: 0;
+                        background: none;
+                        border: none;
+                        font-size: 1.5rem;
+                    }
+                    me button:hover { background: var(--pico-background-color-hover); }
                 '''),
-                H2("Layout Test"),
                 Div(
-                    Group(
-                        Button("Toggle Left",
-                            hx_post="/toggle/left",
-                            hx_target="body",
-                            hx_swap="classes toggle:hide-left"
-                        ),
-                        Button("Toggle Right",
-                            hx_post="/toggle/right",
-                            hx_target="body",
-                            hx_swap="classes toggle:hide-right"
-                        ),
-                        cls="outline"
+                    {'class': 'nav-content container'},
+                    Button("☰",
+                        hx_post="/toggle/left",
+                        hx_target="#left-sidebar",
+                        hx_swap_oob="true"
+                    ),
+                    H2("Layout Test"),
+                    Button("☰",
+                        hx_post="/toggle/right",
+                        hx_target="#right-sidebar",
+                        hx_swap_oob="true"
                     )
                 )
             ),
 
             Aside(
-                Style('''
-                    me {
-                        height: calc(100vh - 4rem);
-                        top: 4rem;
-                        position: sticky;
-                        align-self: start;
-                        grid-area: aside_left;
-                        background: var(--pico-background-color);
-                        padding: 1rem;
-                        overflow-y: auto;
-                    }
-                '''),
+                {'id': 'left-sidebar', 'class': 'sidebar aside_left'},
                 H3("Left Sidebar"),
-                make_article("Left Article 1"),
-                make_article("Left Article 2")
+                make_article("Left Article 1")
             ),
 
             Main(
@@ -163,47 +163,35 @@ def layout():
                         gap: 1rem;
                     }
                 '''),
-                *(make_article(f"Main Article {i}") for i in range(1, 6))
+                *(make_article(f"Main Article {i}") for i in range(1, 4))
             ),
 
             Aside(
-                Style('''
-                    me {
-                        height: calc(100vh - 4rem);
-                        top: 4rem;
-                        position: sticky;
-                        align-self: start;
-                        grid-area: aside_right;
-                        background: var(--pico-background-color);
-                        padding: 1rem;
-                        overflow-y: auto;
-                    }
-                '''),
+                {'id': 'right-sidebar', 'class': 'sidebar aside_right'},
                 H3("Right Sidebar"),
-                make_article("Right Article 1"),
-                make_article("Right Article 2")
+                make_article("Right Article 1")
             ),
 
             Footer(
-                Style('''
-                    me {
-                        grid-area: footer;
-                        padding: 1rem;
-                        text-align: center;
-                        background: var(--pico-background-color);
-                    }
-                '''),
+                Style('me { grid-area: footer; padding: 1rem; text-align: center; }'),
                 P("© 2024 Layout Test")
             )
         )
     )
 
-# Toggle handlers
 @rt('/toggle/{side}')
 def post(side: str):
-    return ""
+    """Toggle handler returns OOB replacements for sidebars"""
+    target_id = f"{'left' if side == 'left' else 'right'}-sidebar"
 
-# Home Page
+    # Return the same sidebar with toggled collapsed class
+    return Aside(
+        {'id': target_id, 'class': 'sidebar aside_' + side + ' collapsed'},
+        H3(side.title() + " Sidebar"),
+        make_article(f"{side.title()} Article 1"),
+        hx_swap_oob="true"
+    )
+
 @rt('/')
 def get():
     return layout()
