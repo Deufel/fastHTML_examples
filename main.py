@@ -48,15 +48,17 @@ def layout():
             grid-template-columns: 1fr 300px 1fr 300px 1fr;
             grid-template-rows: auto 1fr auto;
             grid-template-areas:
-                "navbar  navbar     navbar navbar      navbar"
-                "padding aside_left main   aside_right padding"
-                "footer  footer     footer footer      footer";
+                "navbar       navbar     navbar navbar      navbar"
+                "padding_left aside_left main   aside_right padding_right"
+                "footer       footer     footer footer      footer";
             grid-gap: 1rem;}
             '''),
             Nav(Style('me {grid-area: navbar}'),'Layout Test Builder'),
+            Div(Style('me {grid-area: padding_left}'),'EMPTY'),
             Aside(Style('me {grid-area: aside_left}'),'this is an aside'),
             Main(Style('me {grid-area: main}'),H1('main')),
             Aside(Style('me {grid-area: aside_right}'),'this is an a right aside'),
+            Div(Style('me {grid-area: padding_right}'),'EMPTY'),
             Footer(Style('me {grid-area: footer}'),'footer')
         )
     )
