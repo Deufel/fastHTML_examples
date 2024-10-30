@@ -22,8 +22,109 @@ window.cssScope ??= new MutationObserver(mutations => {
 # CSS Debugging
 css_debug = Style('*, *::before, *::after {box-sizing: border-box; outline:1px solid lime;}')
 
+# Layout Styles
+layout_styles = Style('''
+    /* Define view transition animations */
+    @keyframes fade-in {
+        from { opacity: 0; }
+    }
 
-hdrs=(css_scope_inline_script,css_debug)
+    @keyframes fade-out {
+        to { opacity: 0; }
+    }
+
+    @keyframes slide-from-left {
+        from { transform: translateX(-100%); }
+    }
+
+    @keyframes slide-from-right {
+        from { transform: translateX(100%); }
+    }
+
+    /* Define view transitions */
+    ::view-transition-old(sidebar-left) {
+        animation: 90ms cubic-bezier(0.4, 0, 1, 1) both fade-out,
+                 300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-from-left;
+    }
+    ::view-transition-new(sidebar-left) {
+        animation: 210ms cubic-bezier(0, 0, 0.2, 1) 90ms both fade-in,
+                 300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-from-left;
+    }
+
+    ::view-transition-old(sidebar-right) {
+        animation: 90ms cubic-bezier(0.4, 0, 1, 1) both fade-out,
+                 300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-from-right;
+    }
+    ::view-transition-new(sidebar-right) {
+        animation: 210ms cubic-bezier(0, 0, 0.2, 1) 90ms both fade-in,
+                 300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-from-right;
+    }
+
+    /* Bind transitions to classes */
+    .sidebar-left { view-transition-name: sidebar-left; }
+    .sidebar-right { view-transition-name: sidebar-right; }
+
+    /* Base Layout */
+    body {
+        display: grid;
+        min-height: 100vh;
+        grid-template-areas:
+            "nav"
+            "main"
+            "footer";
+        grid-template-rows: auto 1fr auto;
+        gap: var(--pico-spacing);
+    }
+
+    /* Sidebars */
+    .sidebar {
+        position: fixed;
+        top: var(--pico-nav-height, 4rem);
+        height: calc(100vh - var(--pico-nav-height, 4rem));
+        width: min(300px, 80vw);
+        background: var(--pico-background-color);
+        padding: var(--pico-spacing);
+        z-index: 90;
+    }
+
+    .aside-left {
+        left: 0;
+        transform: translateX(-100%);
+    }
+
+    .aside-right {
+        right: 0;
+        transform: translateX(100%);
+    }
+
+    .sidebar.visible {
+        transform: translateX(0);
+    }
+
+    /* Desktop Layout */
+    @media (min-width: 769px) {
+        body {
+            grid-template-areas:
+                "nav    nav    nav"
+                "left  main   right"
+                "footer footer footer";
+            grid-template-columns: 300px minmax(300px, 800px) 300px;
+            padding: 0 max(var(--pico-spacing), calc((100vw - 1400px) / 2));
+        }
+
+        .sidebar {
+            position: static;
+            transform: none;
+            height: auto;
+        }
+
+        .sidebar-toggle {
+            display: none;
+        }
+    }
+''')
+
+hdrs=(css_scope_inline_script,css_debug, layout_styles)
 
 
 exception_handlers={
@@ -40,8 +141,9 @@ def get():
     return PlainTextResponse("OK", status_code=200)
 
 
+
+
 def make_article(title):
-    """Helper to create sample article content using PicoCSS article component"""
     return Article(
         H4(title),
         P("Sample content using PicoCSS Article component"),
@@ -50,181 +152,85 @@ def make_article(title):
 
 @rt('/')
 def get():
-    """Main layout handler"""
     return (
-        Title('Responsive Layout'),
-        Body(
-            Style('''
-                /* Base mobile-first styles */
-                me {
-                    display: grid;
-                    min-height: 100vh;
-                    grid-template-areas:
-                        "nav"
-                        "main"
-                        "footer";
-                    grid-template-rows: auto 1fr auto;
-                    gap: var(--pico-spacing);
-                    background: var(--pico-background-color);
-                }
-
-                /* Sidebar base styles */
-                me .sidebar {
-                    position: fixed;
-                    top: var(--pico-nav-height, 4rem);
-                    height: calc(100vh - var(--pico-nav-height, 4rem));
-                    width: min(300px, 80vw);
-                    background: var(--pico-background-color);
-                    padding: var(--pico-spacing);
-                    z-index: 90;
-                    overflow-y: auto;
-                    transition: transform 0.3s var(--pico-transition-timing, ease);
-                }
-
-                /* Position sidebars off-screen by default on mobile */
-                me .aside_left {
-                    left: 0;
-                    transform: translateX(-100%);
-                    border-right: var(--pico-border-width) solid var(--pico-muted-border-color);
-                }
-
-                me .aside_right {
-                    right: 0;
-                    transform: translateX(100%);
-                    border-left: var(--pico-border-width) solid var(--pico-muted-border-color);
-                }
-
-                /* Show sidebar when active */
-                me .sidebar.active {
-                    transform: translateX(0);
-                    box-shadow: var(--pico-card-box-shadow);
-                }
-
-                /* Desktop layout */
-                @media (min-width: 769px) {
-                    me {
-                        grid-template-areas:
-                            "nav    nav    nav"
-                            "left  main   right"
-                            "footer footer footer";
-                        grid-template-columns: 300px minmax(300px, 800px) 300px;
-                        padding: 0 max(var(--pico-spacing), calc((100vw - 1400px) / 2));
-                    }
-
-                    me .sidebar {
-                        position: static;
-                        transform: none;
-                        height: auto;
-                        box-shadow: none;
-                        border: var(--pico-border-width) solid var(--pico-muted-border-color);
-                        border-radius: var(--pico-border-radius);
-                    }
-
-                    /* Hide toggle buttons on desktop */
-                    me .sidebar-toggle {
-                        display: none;
-                    }
-                }
-
-                /* Navigation styles */
-                me nav {
-                    position: sticky;
-                    top: 0;
-                    grid-area: nav;
-                    background: var(--pico-background-color);
-                    padding: var(--pico-spacing);
-                    z-index: 100;
-                    border-bottom: var(--pico-border-width) solid var(--pico-muted-border-color);
-                }
-
-                me .nav-content {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                }
-
-                /* Main content area */
-                me main {
-                    grid-area: main;
-                    padding: var(--pico-spacing);
-                    display: flex;
-                    flex-direction: column;
-                    gap: var(--pico-spacing);
-                }
-
-                /* Footer styles */
-                me footer {
-                    grid-area: footer;
-                    padding: var(--pico-spacing);
-                    text-align: center;
-                    border-top: var(--pico-border-width) solid var(--pico-muted-border-color);
-                }
-            '''),
-
-            # Navigation
-            Nav(
-                Div(
-                    {'class': 'nav-content container'},
-                    # Left sidebar toggle
-                    Button("☰",
-                        cls='sidebar-toggle outline',
-                        hx_post="/toggle/left",
-                        hx_target="#left-sidebar",
-                        hx_swap="class",
-                        title="Toggle left sidebar"
-                    ),
-                    # Site title
-                    H2("Layout Demo", cls="text-center"),
-                    # Right sidebar toggle
-                    Button("☰",
-                        cls='sidebar-toggle outline',
-                        hx_post="/toggle/right",
-                        hx_target="#right-sidebar",
-                        hx_swap="class",
-                        title="Toggle right sidebar"
-                    )
-                )
-            ),
-
-            # Left Sidebar
-            Aside(
-                {'id': 'left-sidebar', 'class': 'sidebar aside_left'},
-                H3("Left Sidebar"),
-                Nav(
-                    Ul(
-                        Li(A("Home", href="#")),
-                        Li(A("About", href="#")),
-                        Li(A("Contact", href="#"))
-                    )
+        Title('View Transitions Demo'),
+        Nav(
+            Div(
+                {'class': 'container'},
+                Button("☰",
+                    cls='outline sidebar-toggle',
+                    hx_post="/toggle/left",
+                    hx_target="#left-sidebar",
+                    hx_swap="outerHTML transition:true"
                 ),
-                make_article("Left Content")
-            ),
-
-            # Main Content
-            Main(
-                *(make_article(f"Main Article {i}") for i in range(1, 4))
-            ),
-
-            # Right Sidebar
-            Aside(
-                {'id': 'right-sidebar', 'class': 'sidebar aside_right'},
-                H3("Right Sidebar"),
-                make_article("Right Content")
-            ),
-
-            # Footer
-            Footer(
-                P("© 2024 Layout Demo", cls="text-center")
+                H2("Demo"),
+                Button("☰",
+                    cls='outline sidebar-toggle',
+                    hx_post="/toggle/right",
+                    hx_target="#right-sidebar",
+                    hx_swap="outerHTML transition:true"
+                ),
             )
+        ),
+
+        # Left Sidebar
+        Aside(
+            {'id': 'left-sidebar', 'class': 'sidebar aside-left sidebar-left'},
+            H3("Left Menu"),
+            Nav(
+                Ul(
+                    Li(A("Home", href="#")),
+                    Li(A("About", href="#")),
+                    Li(A("Contact", href="#"))
+                )
+            )
+        ),
+
+        # Main Content
+        Main(
+            {'class': 'container'},
+            *(make_article(f"Article {i}") for i in range(1,4))
+        ),
+
+        # Right Sidebar
+        Aside(
+            {'id': 'right-sidebar', 'class': 'sidebar aside-right sidebar-right'},
+            H3("Right Panel"),
+            make_article("Side Content")
+        ),
+
+        Footer(
+            {'class': 'container'},
+            P("© 2024 Demo")
         )
     )
 
 @rt('/toggle/{side}')
 def post(side: str):
-    """Toggle sidebar active state"""
-    # This handler just toggles the 'active' class
-    # HTMX will handle the class swap automatically
-    return "active"
+    """Toggle sidebar visibility with view transitions"""
+    sidebar_id = f"{side}-sidebar"
+    sidebar_class = f"sidebar-{side}"
+
+    # Get current classes
+    base_classes = ['sidebar', f'aside-{side}', sidebar_class]
+
+    # Toggle visible class
+    if 'visible' in request.form:
+        classes = base_classes
+    else:
+        classes = base_classes + ['visible']
+
+    return Aside(
+        {'id': sidebar_id, 'class': ' '.join(classes)},
+        H3(f"{side.title()} Panel"),
+        Nav(
+            Ul(
+                Li(A("Home", href="#")),
+                Li(A("About", href="#")),
+                Li(A("Contact", href="#"))
+            )
+        ) if side == 'left' else make_article("Side Content")
+    )
 
 
 
