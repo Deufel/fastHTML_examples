@@ -40,11 +40,14 @@ def get():
     return PlainTextResponse("OK", status_code=200)
 
 def layout():
-    return (Style('me {display : grid; grid-template-columns: 1fr 1fr 1fr; grid-gap: 1rem;}'),
-        Nav('Layout Test Builder'),
-        Aside('this is an aside'),
-        Main(H1('main')),
-        Footer('footer')
+    return (
+        Title('Layout'),
+        Body(Style('me {display: grid; grid-template-columns: 1fr 1fr 1fr; grid-gap: 1rem;}'),
+            Nav('Layout Test Builder'),
+            Aside('this is an aside'),
+            Main(H1('main')),
+            Footer('footer')
+        )
     )
 
 # Home Page
