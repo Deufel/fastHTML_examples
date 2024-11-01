@@ -2,7 +2,7 @@ from fasthtml.common import *
 import os
 from starlette.responses import PlainTextResponse  # Add this import
 
-css_scope_inline_script = Script(r'''
+css_inline = r'''
 window.cssScopeCount ??= 1
 window.cssScope ??= new MutationObserver(mutations => {
     document?.body?.querySelectorAll('style:not([ready])').forEach(node => {
@@ -17,21 +17,155 @@ window.cssScope ??= new MutationObserver(mutations => {
         node.setAttribute('ready', '')
     })
 }).observe(document.documentElement, {childList: true, subtree: true})
-''')
+'''
 
 # CSS Debugging
 css_debug = Style('*, *::before, *::after {box-sizing: border-box; outline:1px solid lime;}')
 
+# View Transitions API
+styles_view_transitions = '''
+/* Enable view transitions globally */
+html::view-transition-old(root),
+html::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
 
-hdrs=(css_scope_inline_script,css_debug)
+/* Define the animations */
+@keyframes fade-in {
+  from { opacity: 0; }
+}
 
+@keyframes fade-out {
+  to { opacity: 0; }
+}
+
+@keyframes slide-from-right {
+  from { transform: translateX(90px); }
+}
+
+@keyframes slide-to-left {
+  to { transform: translateX(-90px); }
+}
+
+/* Custom transition group */
+::view-transition-group(custom) {
+  animation-duration: 300ms;
+}
+
+::view-transition-old(custom) {
+  animation: 90ms cubic-bezier(0.4, 0, 1, 1) both fade-out,
+            300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-to-left;
+}
+
+::view-transition-new(custom) {
+  animation: 210ms cubic-bezier(0, 0, 0.2, 1) 90ms both fade-in,
+            300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-from-right;
+}
+
+/* Class for transitioning elements */
+.transition-group {
+  view-transition-name: custom;
+}
+'''
+global_transitions = """
+htmx.config.globalViewTransitions = true;
+"""
+container_toggle = '''
+function toggleContainer() {
+    const body = document.querySelector('body.container, body.container-fluid');
+    if (body) {
+        const isFluid = body.classList.contains('container-fluid');
+        if (!isFluid) {
+            body.classList.replace('container', 'container-fluid');
+            localStorage.setItem('layout-fluid', 'true');
+        } else {
+            body.classList.replace('container-fluid', 'container');
+            localStorage.setItem('layout-fluid', 'false');
+        }
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    const body = document.querySelector('body.container, body.container-fluid');
+    const isFluid = localStorage.getItem('layout-fluid') === 'true';
+
+    if (body) {
+        body.classList.remove('container', 'container-fluid');
+        body.classList.add(isFluid ? 'container-fluid' : 'container');
+    }
+});
+'''
+
+style_resize = """
+:root {
+    --pico-font-family-sans-serif: Inter, system-ui, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, Helvetica, Arial, "Helvetica Neue", sans-serif, var(--pico-font-family-emoji);
+    --pico-font-size: 87.5%;
+    --pico-line-height: 1.25;
+    --pico-form-element-spacing-vertical: 0.5rem;
+    --pico-form-element-spacing-horizontal: 1.0rem;
+    --pico-border-radius: 0.375rem;
+    --spacing: 0;
+}
+
+@media (min-width: 576px) {
+    :root {
+        --pico-font-size: 87.5%;
+    }
+}
+
+@media (min-width: 768px) {
+    :root {
+        --pico-font-size: 87.5%;
+    }
+}
+
+@media (min-width: 1024px) {
+    :root {
+        --pico-font-size: 87.5%;
+    }
+}
+
+@media (min-width: 1280px) {
+    :root {
+        --pico-font-size: 87.5%;
+    }
+}
+
+@media (min-width: 1536px) {
+    :root {
+        --pico-font-size: 87.5%;
+    }
+}
+
+h1, h2, h3, h4, h5, h6 {
+    --pico-font-weight: 600;
+}
+
+article {
+    border: 1px solid var(--pico-muted-border-color);
+    /* Original doesn't have a border */
+    border-radius: calc(var(--pico-border-radius) * 2);
+    /* Original: var(--pico-border-radius) */
+}
+"""
 
 exception_handlers={
     404: lambda req, exc: Titled("404: I don't exist!"),
     418: lambda req, exc: Titled("418: I'm a teapot!")
 }
 
-app,rt = fast_app(pico=True,exception_handlers=exception_handlers, hdrs=hdrs)
+app, rt = fast_app(pico=True,
+    hdrs=(
+        Meta(name="view-transition", content="same-origin"),
+        Style(styles_view_transitions),
+        Script(global_transitions),
+        Script(css_inline),
+        Script(container_toggle),
+        Style(style_resize)
+    ),
+)
 
 # Add health check route
 @rt("/health")
@@ -41,719 +175,92 @@ def get():
 
 
 
+def layout():
+    return (
+        Title('Layout'),
+        Body(
+            Style("""
+            /* Base grid layout */
+            me {
+                min-height: 100vh;
+                min-height: 100dvh;
+                height: 100%;
+                display: grid;
+                grid-template: auto 1fr auto / auto 1fr auto;
+                gap: var(--pico-spacing);
+            }
+            me > Nav {grid-column: 1/3;}
+            me > Aside {grid-column: 1/2; padding: 0;}
+            me > Main {grid-column: 2/4; padding: 0;}
+            me > Footer {grid-column: 1/4; padding: 0;}
+
+            /* Primary layout Articles only */
+            me > Aside > Article,
+            me > Main > Article {
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+            }
+
+            /* Primary layout Article internals */
+            me > Aside > Article > Main,
+            me > Main > Article > Main {
+                flex: 1;
+                min-height: 0;  /* Prevents overflow issues */
+                overflow-y: auto;  /* Enables scrolling for overflow content */
+            }
+
+            /* Nested Articles retain normal PicoCSS behavior */
+            me Article Article {
+                /* Default PicoCSS article styling remains unchanged */
+                display: block;  /* Reset to block for nested articles */
+                height: auto;    /* Allow natural height */
+            }
+            """),
+            Nav(
+                Ul(Kbd('Event OS')),
+                Ul(Li(A('Some Link', href='/#')),
+                   Li(A('Someother Line', href='/#'))),
+                Ul(Li(Button('Sign In', cls='outline')),
+                   Li(Button("Toggle theme",
+                            onclick="document.documentElement.setAttribute('data-theme', document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light')")),
+                   Li(Button("Toggle Width", onclick="toggleContainer()")))
+            ),
+            Aside(
+                Article(Header(A('My Account')),
+                        Main(Ul(Li(A('Home')),
+                                Hr(),
+                                Li(A('Map')),
+                                Li(A('Calendar')),
+                                Li(A('Data Table')),
+                                Hr(),
+                                Li(A('Favorites')),
+                                Li(A('Partnerships')),
+                                Li(A('Watching')))),
+                        Footer(A('settings')))
+            ),
+            Main(
+                Article(
+                    Header('this is a header'),
+                    Main(P('This is actually not that big of a deal'),
+                        Article(
+                            Header('this is a header'),
+                            Main(P('This is actually not that big of a deal')),
+                            Footer('But is worth figuring out')
+                        ),),
+                    Footer('But is worth figuring out'))
+            ),
+            Footer(
+                Small('EventOS LLC 2025 All Rights Reserved')
+            ),
+            cls='container-fluid'
+        )
+    )
+
+# Home Page
 @rt('/')
 def get():
-    """Main route that sets up the skeleton with loading sections"""
-    return Div(
-        Nav(Style('''
-            me html {
-                scroll-padding-top: calc(var(--pico-nav-element-spacing-vertical) * 3);
-                scroll-behavior: smooth;
-            }
-
-            me {
-                position: sticky;
-                top: 0;
-                left: 0;
-                right: 0;
-                z-index: 1000;
-                /* Use Pico's spacing variables */
-                padding: var(--pico-nav-element-spacing-vertical) var(--pico-nav-element-spacing-horizontal);
-                /* Use Pico's transition variable */
-                transition: all var(--pico-transition);
-                /* Use Pico's background and border variables */
-                background: color-mix(in srgb, var(--pico-background-color) 31%, transparent);
-                border: var(--pico-border-width) solid color-mix(in srgb, var(--pico-background-color) 37%, transparent);
-                /* Use Pico's border-radius variable */
-                border-radius: var(--pico-border-radius);
-                box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-                backdrop-filter: blur(6.3px);
-                -webkit-backdrop-filter: blur(6.3px);
-            }
-
-
-        '''),
-             # Using Pico's native nav patterns - no custom classes needed for basic structure
-            Ul(Li(Img(src='static/logo.png', alt="EventOS", width="150", height="auto"))),
-            Ul(
-                Li(Details(
-                    Summary(get_icon('menu'), 'Menu', cls="contrast"),
-                    # Use role="list" for Pico's native dropdown styling
-                    Ul(
-                        Li(A("About", href="#about", cls="contrast secondary")),
-                        Li(A("Features", href="#features", cls="contrast secondary")),
-                        Li(A("Coverage", href="#coverage", cls="contrast secondary")),
-                        Li(A("Pricing", href="#pricing", cls="contrast secondary")),
-                        Li(Hr()),
-                        # Use Pico's button styles directly
-                        Li(Button(get_icon('login'),"Sign In", hx_get="/login", hx_target="body", hx_push_url="true", cls="outline")),
-                        Li(Button(get_icon('register'),"Register", hx_get="/register", hx_target="body", hx_push_url="true", cls="outline contrast")),
-                        Li(Hr()),
-                        Li(Button(
-                            Span(get_icon('sun'), cls="theme-icon light"),
-                            Span(get_icon('moon'), cls="theme-icon dark"),
-                            id="theme-toggle",
-                            cls="outline contrast",
-                            aria_label="Toggle theme"
-                        )),
-                        Li(Button(
-                            Span(get_icon('expand'), cls="layout-icon expand"),
-                            Span(get_icon('compress'), cls="layout-icon compress"),
-                            id="layout-toggle",
-                            cls="outline contrast",
-                            aria_label="Toggle layout"
-                        )),
-                        role="list",
-                    ),
-                    dir='rtl',
-                    cls="dropdown"
-                ))
-            ),
-            cls="container"
-        ),
-        Main(Style('''
-            me {
-                /* Use Pico's spacing variables */
-                padding-top: calc(var(--pico-nav-element-spacing-vertical) * 3);
-            }
-        '''),
-            # Hero section
-            Section(
-                Div(Progress()),
-                id="hero",
-                hx_get="/sections/hero",
-                hx_trigger="load",
-                hx_swap="innerHTML"
-            ),
-            # Hero 2
-            Section(
-                Div(Progress()),
-                id="hero",
-                hx_get="/sections/temp",
-                hx_trigger="load",
-                hx_swap="innerHTML"
-            ),
-             # Hero 3
-            Section(
-                Div(Progress()),
-                id="hero",
-                hx_get="/sections/temp_2",
-                hx_trigger="load",
-                hx_swap="innerHTML"
-            ),
-            # About section
-            Hgroup(Section(
-                    H2('Why'),
-                    Div(Progress()),
-                    id="about",
-                    hx_get="/sections/why",
-                    hx_trigger="load",
-                    hx_swap="innerHTML")),
-            # Features section
-            Hgroup(H2('Features'),
-                Section(
-                    Div(Progress()),
-                    id="features",
-                    hx_get="/sections/features",
-                    hx_trigger="load",
-                    hx_swap="innerHTML")
-            ),
-            # Coverage section
-            # Hgroup(H2('Coverage'),
-            #     Section(
-            #         Div(Progress()),
-            #         id="coverage",
-            #         hx_get="/sections/coverage",
-            #         hx_trigger="load",
-            #         hx_swap="innerHTML")
-            # ),
-            # Pricing section
-            Hgroup(H2('Pricing'),
-                Section(
-                    Div(Progress()),
-                    id="pricing",
-                    hx_get="/sections/pricing",
-                    hx_trigger="load",
-                    hx_swap="innerHTML")
-            ),
-            cls="container"  # Add container class to main
-        ),
-        # Footer section
-        Footer(
-            Grid(
-                Div(
-                    H4("Event OS"),
-                    Nav(
-                        Ul(
-                            Li(A("About", href="#")),
-                            Li(A("Careers", href="#")),
-                            Li(A("Contact", href="#"))
-                        )
-                    )
-                ),
-                Div(
-                    H4("Resources"),
-                    Nav(
-                        Ul(
-                            Li(A("Documentation", href="#")),
-                            Li(A("Blog", href="#")),
-                            Li(A("Support", href="#"))
-                        )
-                    )
-                ),
-                Div(
-                    H4("Legal"),
-                    Nav(
-                        Ul(
-                            Li(A("Privacy", href="#")),
-                            Li(A("Terms", href="#"))
-                        )
-                    )
-                )
-            ),
-            Hr(),
-            P("© 2024 EventOS. All rights reserved.", cls="text-center"),
-            cls="container"  # Add container class to footer
-        )
-    )
-
-#| export
-
-@rt("/sections/hero")
-def get():
-    """Hero section"""
-    return Article(
-        Style('''
-            me {
-                position: relative;
-                width: 60%;
-                margin: 0 auto;
-                padding: 2rem;
-                border-radius: var(--pico-border-radius);
-                background: var(--pico-card-background-color);
-                box-shadow:
-                    20px 20px 60px var(--pico-card-sectionning-background-color),
-                    -20px -20px 60px var(--pico-background-color);
-            }
-
-            me::before {
-                content: "";
-                position: absolute;
-                top: -4px;    /* Increased from -2px for thicker border */
-                left: -4px;
-                right: -4px;
-                bottom: -4px;
-                background: linear-gradient(to right, #CA2B39, #0067ff);
-                border-radius: calc(var(--pico-border-radius) + 4px);
-                z-index: -1;
-                box-shadow:
-                    inset -2px -2px 6px rgba(255, 255, 255, 0.1),
-                    inset 2px 2px 6px rgba(0, 0, 0, 0.1);
-            }
-
-            me .hero-tag {
-                text-transform: uppercase;
-                color: var(--pico-primary);
-                font-weight: bold;
-                letter-spacing: 0.1em;
-                margin-bottom: 1rem;
-            }
-
-            me .hero-title {
-                font-size: 2.5rem;
-                line-height: 1.2;
-                margin-bottom: 1.5rem;
-            }
-
-            me .hero-description {
-                font-size: 1.1rem;
-                line-height: 1.6;
-                color: var(--pico-muted-color);
-                margin-bottom: 2rem;
-            }
-
-            @media (max-width: 768px) {
-                me {
-                    width: 90%;
-                }
-            }
-        '''),
-
-        Main(
-            # Tag line
-            P("DISCOVER THE OPPORTUNITY", cls="hero-tag text-center"),
-
-            # Main headline
-            H1(
-                "Everything you need to help you find meaningful event partnerships to grow your business",
-                cls="hero-title text-center"
-            ),
-
-            # Description
-            P(
-                "Born out of necessity, we have built a one-of-a-kind tool to help businesses "
-                "reach their consumers by engaging in meaningful event activations in their communities",
-                cls="hero-description text-center"
-            ),
-            Fieldset(
-                Input(name='email', type='email', placeholder='Enter your email', autocomplete='email'),
-                Input(type='submit', value='Notify Me', cls='outline contrast'),
-                role='group'
-            )
-        ),
-    )
-
-@rt("/sections/about")
-def get():
-    """About section"""
-    return Div(
-        Grid(
-            Article(
-                H3("Our Mission"),
-                P("To make it easier for brands to connect with events"),
-                cls="text-center"
-            ),
-            Article(
-                H3("Our Vision"),
-                P("Create a marketplace where brands and event hosts can effortlessly connect and build partnerships"),
-                cls="text-center"
-            )
-        ),
-    )
-
-@rt("/sections/why")
-def get():
-    """About section"""
-    carousel_styles = """
-        me { position: relative; overflow: hidden; }
-        me .quote-container { display: grid; width: 100%; }
-        me blockquote {
-            margin: var(--pico-typography-spacing-vertical) 0;
-            padding: var(--pico-spacing);
-            border-left: 0.25rem solid var(--pico-blockquote-border-color);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            grid-area: 1 / 1;
-            view-transition-name: quote;
-            color: var(--pico-color);
-        }
-        me blockquote.active { opacity: 1; }
-        me blockquote footer {
-            margin-top: calc(var(--pico-typography-spacing-vertical) * 0.5);
-            color: var(--pico-blockquote-footer-color);
-        }
-        me .controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 1rem;
-        }
-        me button {
-            background: transparent;
-            border: none;
-            color: var(--pico-primary);
-            font-size: 1.5rem;
-            cursor: pointer;
-            padding: 0.5rem 1rem;
-            transition: transform 0.2s ease;
-        }
-        me button:hover {
-            transform: scale(1.1);
-            color: var(--pico-primary-hover);
-        }
-        me .dots {
-            display: flex;
-            gap: 0.5rem;
-            justify-content: center;
-            margin-top: 1rem;
-        }
-        me .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--pico-muted-color);
-            cursor: pointer;
-            border: none;
-            padding: 0;
-        }
-        me .dot.active { background: var(--pico-primary); }
-    """
-
-    # Using Surreal's Now helper for initialization
-    carousel_init = Now("""
-        let current = 0;
-        const quotes = any('.quote', me());
-        const dots = any('.dot', me());
-        let timer = null;
-
-        // Make first quote visible immediately
-        quotes[0].classList.add('active');
-        dots[0].classList.add('active');
-
-        function showQuote(idx) {
-            quotes.forEach(q => q.classList.remove('active'));
-            dots.forEach(d => d.classList.remove('active'));
-            quotes[idx].classList.add('active');
-            dots[idx].classList.add('active');
-        }
-
-        function nextQuote() {
-            current = (current + 1) % quotes.length;
-            showQuote(current);
-        }
-
-        function prevQuote() {
-            current = (current - 1 + quotes.length) % quotes.length;
-            showQuote(current);
-        }
-
-        function startTimer() {
-            stopTimer();
-            timer = setInterval(nextQuote, 5000);
-        }
-
-        function stopTimer() {
-            if (timer) clearInterval(timer);
-        }
-
-        // Set up event handlers
-        me().on('mouseenter', stopTimer);
-        me().on('mouseleave', startTimer);
-
-        me('.prev', me()).on('click', ev => {
-            halt(ev);
-            prevQuote();
-        });
-
-        me('.next', me()).on('click', ev => {
-            halt(ev);
-            nextQuote();
-        });
-
-        dots.forEach((dot, idx) => {
-            dot.addEventListener('click', () => {
-                current = idx;
-                showQuote(current);
-            });
-        });
-
-        startTimer();
-    """)
-
-    quotes = [
-        ("The power of experiential marketing is that it creates emotional connections through shared moments.",
-         "Ivan Menezes, former Diageo CEO"),
-        ("The most valuable thing in business is a connection – real, human connection. Events create those moments where brands become more than just products; they become experiences people remember.",
-         "Marc Benioff, Salesforce CEO"),
-        ("In-person events remain one of our most effective channels for building brand awareness and loyalty in key markets.",
-         "Albert Baladi, Beam Suntory CEO"),
-        ("Live events give us the opportunity to create authentic connections with our audience. It's about creating memorable experiences that align with their lifestyle and values.",
-         "Michel Doukeris, CEO of AB InBev"),
-        ("Digital lets you reach millions, but events let you touch hearts. That's where lasting customer relationships are built.",
-         "Richard Branson, Virgin Group"),
-        ("The magic of marketing happens when you can bring your brand promise to life in a tangible way. Events are the ultimate platform for that transformation.",
-         "Beth Comstock, former GE Vice Chair")
-    ]
-
-    return Div(
-        H1("Why Focus on Live Events", cls="text-center"),
-        P("""In today's digital-first world, live events create irreplaceable moments of authentic connection.
-            They transform passive observers into active participants, building emotional bonds that resonate far
-            beyond the event itself. These shared experiences become the cornerstone of lasting brand relationships.""",
-          cls="text-center"),
-        Div(
-            Style(carousel_styles),
-            Div(
-                Article(*(
-                    Blockquote(
-                        quote,
-                        Footer(Cite(f"- {author}")),
-                        cls="quote"
-                    ) for quote, author in quotes
-                ), cls="quote-container"),
-                Div(
-                    Button("←", cls="prev"),
-                    Button("→", cls="next"),
-                    cls="controls"
-                ),
-                Div(*(
-                    Button(cls="dot") for _ in quotes
-                ), cls="dots"),
-                cls="carousel"
-            ),
-            carousel_init,
-            id="quote-carousel"
-        )
-    )
-
-@rt("/sections/temp")
-def get():
-    """Hero section"""
-    return Article(
-        Style('''
-            me {
-                position: relative;
-                width: 60%;
-                margin: 0 auto;
-                padding: 2rem;
-                border-radius: var(--pico-border-radius);
-                background: var(--pico-card-background-color);
-                box-shadow:
-                    20px 20px 60px var(--pico-card-sectionning-background-color),
-                    -20px -20px 60px var(--pico-background-color);
-            }
-
-            me::before {
-                content: "";
-                position: absolute;
-                top: -4px;    /* Increased from -2px for thicker border */
-                left: -4px;
-                right: -4px;
-                bottom: -4px;
-                background: linear-gradient(to right, #CA2B39, #0067ff);
-                border-radius: calc(var(--pico-border-radius) + 4px);
-                z-index: -1;
-                box-shadow:
-                    inset -2px -2px 6px rgba(255, 255, 255, 0.1),
-                    inset 2px 2px 6px rgba(0, 0, 0, 0.1);
-            }
-
-            me .hero-tag {
-                text-transform: uppercase;
-                color: var(--pico-primary);
-                font-weight: bold;
-                letter-spacing: 0.1em;
-                margin-bottom: 1rem;
-            }
-
-            me .hero-title {
-                font-size: 2.5rem;
-                line-height: 1.2;
-                margin-bottom: 1.5rem;
-            }
-
-            me .hero-description {
-                font-size: 1.1rem;
-                line-height: 1.6;
-                color: var(--pico-muted-color);
-                margin-bottom: 2rem;
-            }
-
-            @media (max-width: 768px) {
-                me {
-                    width: 90%;
-                }
-            }
-        '''),
-        Main(
-            # Tag line
-            P("Find. Activate. Grow. ", cls="hero-tag text-center"),
-
-            # Main headline
-            H1(
-                "Everything you need to help you find meaningful event partnerships to grow your business",
-                cls="hero-title text-center"
-            ),
-
-            # Description
-            P(
-                "Find, Activate, and Grow! EventOS helps your company grow its brand awareness. Familiarize yourself with state-issued liquor-licensed events. Search by state to view temporary licensed events that revolve around music, food, art, culture, and other specialty themes. Add states as you open up new markets, favorite events you wish to work with, and view contact information for events you want to engage with. Your next event partnership has never been this close.",
-                cls="hero-description text-center"
-            ),
-            Fieldset(
-                Input(name='email', type='email', placeholder='Enter your email', autocomplete='email'),
-                Input(type='submit', value='Notify Me', cls='outline contrast'),
-                role='group'
-            )
-        ),
-    )
-
-
-@rt("/sections/temp_2")
-def get():
-    """Hero section"""
-    return Article(
-        Style('''
-            me {
-                position: relative;
-                width: 60%;
-                margin: 0 auto;
-                padding: 2rem;
-                border-radius: var(--pico-border-radius);
-                background: var(--pico-card-background-color);
-                box-shadow:
-                    20px 20px 60px var(--pico-card-sectionning-background-color),
-                    -20px -20px 60px var(--pico-background-color);
-            }
-
-            me::before {
-                content: "";
-                position: absolute;
-                top: -4px;    /* Increased from -2px for thicker border */
-                left: -4px;
-                right: -4px;
-                bottom: -4px;
-                background: linear-gradient(to right, #CA2B39, #0067ff);
-                border-radius: calc(var(--pico-border-radius) + 4px);
-                z-index: -1;
-                box-shadow:
-                    inset -2px -2px 6px rgba(255, 255, 255, 0.1),
-                    inset 2px 2px 6px rgba(0, 0, 0, 0.1);
-            }
-
-            me .hero-tag {
-                font-size: 2.5rem;
-                text-transform: uppercase;
-                color: var(--pico-primary);
-                font-weight: bold;
-                letter-spacing: 0.1em;
-                margin-bottom: 1rem;
-            }
-
-            me .hero-title {
-                font-size: 3rem;
-                line-height: 1.2;
-                margin-bottom: 1.5rem;
-            }
-
-            me .hero-description {
-                font-size: 1.1rem;
-                line-height: 1.6;
-                color: var(--pico-muted-color);
-                margin-bottom: 2rem;
-            }
-
-            @media (max-width: 768px) {
-                me {
-                    width: 90%;
-                }
-            }
-        '''),
-        Main(
-            # Tag line
-            #P("Find. Activate. Grow. ", cls="hero-tag text-center"),
-
-            # Main headline
-            H1(
-                "Find. Activate. Grow.",
-                cls="hero-title text-center"
-            ),
-
-            # Description
-            Div(
-                P(Strong("EventOS "),"helps your company grow its brand awareness by increasing activations. Browse all officially state-licensed special events and identify partnerships opportunities that allign with your brand. Your next event partnership has never been this close.",
-                cls="hero-description text-center"
-            ),
-            Fieldset(
-                Input(name='email', type='email', placeholder='Enter your email', autocomplete='email'),
-                Input(type='submit', value='Notify Me', cls='outline contrast'),
-                role='group'
-            )
-        ),
-    ),
-    )
-
-@rt("/sections/features")
-def get():
-    """Features section"""
-    features = [
-        ('search', 'Discover New Markets', 'Use our intuitive search features'),
-        ('database', 'Event Database', 'Growing Database of Licensed Special Events'),
-        ('crosshair', 'Strategic Deployment', 'Efficiently align your marketing efforts'),
-        ('arrow_up', 'Promote Organic Growth', 'Build lasting brand equity by connecting directly with new customers'),
-        ('store', 'Support Local Communities','Find market alignment for your brands, while giving back to local communities'),
-        ('handshake', 'Build Lasting Partnerships', 'Develop meaningful relationships with event organizers')
-    ]
-
-    return Div(Style('me .grid{grid-template-columns: repeat(auto-fill, minmax(300px, 1fr))}'),
-        Grid(*[
-            Article(
-                get_icon(icon),
-                H3(title),
-                P(desc),
-                cls="text-center"
-            ) for icon, title, desc in features
-        ])
-    )
-
-
-def create_pricing(is_annual: bool = False):
-    """Simple stateful pricing component"""
-    price = "$20" if is_annual else "$25"
-    period = "/month, billed annually" if is_annual else "/month"
-
-    return Container(
-        Article(
-            H2("Simple, transparent pricing"),
-            P("Choose the plan that works best for you"),
-
-            # Simple toggle that passes state
-            Group(Span('Monthly'),
-                  Label(
-                    Input(
-                        type="checkbox",
-                        role="switch",
-                        checked=is_annual,
-                        hx_get=f"/sections/pricing?annual={not is_annual}",
-                        hx_target="#pricing-container",
-                        hx_swap="innerHTML"
-                    ),
-                    f"Annual billing (Save 20%)"
-                    ),
-                  Span('Annually'),
-
-                cls="text-center"
-            ),
-
-            Grid(
-                # Free tier
-                Article(
-                    Header(H3("Free Tier")),
-                    H2("$0", Small("/month")),
-                    Ul(
-                        Li("Try before you buy"),
-                        Li("Create a Free account"),
-                        Li("Limited Events Available")
-                    ),
-                    Footer(Button("Choose Plan", cls="secondary outline"))
-                ),
-
-                # Pro tier
-                Article(
-                    Header(H3("Pro"),
-                           Group(
-                                Label(
-                                    Input(
-                                        type="checkbox",
-                                        role="switch",
-                                        checked=is_annual,
-                                        hx_get=f"/sections/pricing?annual={not is_annual}",
-                                        hx_target="#pricing-container",
-                                        hx_swap="innerHTML"
-                                    ),
-                                    f"Annual billing (Save 20%)"
-                                ),
-                                cls="text-center"
-                            ),
-                          ),
-                    H2(price, Small(period)),
-                    Ul(
-                        Li("Full access to All Events"),
-                        Li("Event Tracking Tools"),
-                        Li("Event Search Tools")
-                    ),
-                    Footer(Button("Choose Plan", cls="contrast"))
-                )
-            ),
-            id="pricing-container"
-        )
-    )
-
-@rt("/sections/pricing")
-def get(annual: bool = False):
-    """Single route handles both initial load and toggle"""
-    return create_pricing(annual)
-
+    return layout()
 
 
 
