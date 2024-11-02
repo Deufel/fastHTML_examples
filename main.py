@@ -102,6 +102,45 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 '''
 
+font_toggle = '''
+function toggleFontSize() {
+    const root = document.documentElement;
+    const currentSize = getComputedStyle(root).getPropertyValue('--pico-font-size').trim();
+    const isLarge = currentSize === '100%';
+
+    // Toggle between 87.5% and 100%
+    root.style.setProperty('--pico-font-size', isLarge ? '87.5%' : '100%');
+
+    // Store preference
+    localStorage.setItem('font-size-large', (!isLarge).toString());
+
+    // Toggle icon visibility
+    const plusIcon = document.getElementById('font-plus-icon');
+    const minusIcon = document.getElementById('font-minus-icon');
+    if (plusIcon && minusIcon) {
+        plusIcon.style.display = isLarge ? 'inline-block' : 'none';
+        minusIcon.style.display = isLarge ? 'none' : 'inline-block';
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    const root = document.documentElement;
+    const isLarge = localStorage.getItem('font-size-large') === 'true';
+
+    // Set initial size from storage or default to large (100%)
+    root.style.setProperty('--pico-font-size', isLarge ? '100%' : '87.5%');
+
+    // Set initial icon visibility
+    const plusIcon = document.getElementById('font-plus-icon');
+    const minusIcon = document.getElementById('font-minus-icon');
+    if (plusIcon && minusIcon) {
+        plusIcon.style.display = isLarge ? 'none' : 'inline-block';
+        minusIcon.style.display = isLarge ? 'inline-block' : 'none';
+    }
+});
+'''
+
 style_resize = """
 :root {
     --pico-font-family-sans-serif: Inter, system-ui, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, Helvetica, Arial, "Helvetica Neue", sans-serif, var(--pico-font-family-emoji);
