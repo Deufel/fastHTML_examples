@@ -10,6 +10,60 @@ exception_handlers={
 # CSS Debugging
 css_debug = Style('*, *::before, *::after {box-sizing: border-box; outline:1px solid lime;}')
 
+theme_toggle = '''
+function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+
+    // Toggle theme
+    html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+
+    // Store preference
+    localStorage.setItem('theme', isDark ? 'light' : 'dark');
+
+    // Toggle icon visibility
+    const sunIcon = document.getElementById('sun-icon');
+    const moonIcon = document.getElementById('moon-icon');
+    if (sunIcon && moonIcon) {
+        sunIcon.style.display = isDark ? 'inline-block' : 'none';
+        moonIcon.style.display = isDark ? 'none' : 'inline-block';
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    // Check for saved theme preference or use OS preference
+    let theme = localStorage.getItem('theme');
+    if (!theme) {
+        theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+
+    // Set initial theme
+    document.documentElement.setAttribute('data-theme', theme);
+
+    // Set initial icon visibility
+    const sunIcon = document.getElementById('sun-icon');
+    const moonIcon = document.getElementById('moon-icon');
+    if (sunIcon && moonIcon) {
+        const isDark = theme === 'dark';
+        sunIcon.style.display = isDark ? 'none' : 'inline-block';
+        moonIcon.style.display = isDark ? 'inline-block' : 'none';
+    }
+
+    // Listen for OS theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+        if (!localStorage.getItem('theme')) {
+            const newTheme = e.matches ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            if (sunIcon && moonIcon) {
+                sunIcon.style.display = e.matches ? 'none' : 'inline-block';
+                moonIcon.style.display = e.matches ? 'inline-block' : 'none';
+            }
+        }
+    });
+});
+'''
+
 # View Transitions API
 styles_view_transitions = '''
 /* Enable view transitions globally */
