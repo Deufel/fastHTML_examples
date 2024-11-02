@@ -418,9 +418,8 @@ def layout_landing():
                                 hx_trigger="load",
                                 hx_swap="innerHTML")
                         ),
-                    )
                 Hr(),
-                            # Tdest FOr View Api Section
+                            # Testing for View Transitions API
                         Section(H1('Pricing',id="pricing", cls='text-center'),
                             Section(
                                 Div(Progress()),
