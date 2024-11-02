@@ -314,7 +314,7 @@ ICONS = {
     'register': '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user-round-plus"><path d="M2 21a8 8 0 0 1 13.292-6"/><circle cx="10" cy="8" r="5"/><path d="M19 16v6"/><path d="M22 19h-6"/></svg>',
     'font_plus': '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-a-arrow-up"><path d="M3.5 13h6"/><path d="m2 16 4.5-9 4.5 9"/><path d="M18 16V7"/><path d="m14 11 4-4 4 4"/></svg>',
     'font_minus': '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-a-arrow-down"><path d="M3.5 13h6"/><path d="m2 16 4.5-9 4.5 9"/><path d="M18 7v9"/><path d="m14 12 4 4 4-4"/></svg>',
-
+    'arrow_right': '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>',
     # Add other icons here...
 
 }
@@ -838,6 +838,110 @@ def create_pricing():
 def get():
     """Single route handles initial load"""
     return create_pricing()
+
+def calendar_component(month="November", year="2023"):
+    days_of_week = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+    return Article(
+        Style("""
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            padding: var(--pico-spacing);
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--pico-border-radius);
+            background: var(--pico-card-sectioning-background-color);
+        }
+
+        .calendar-header {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: var(--pico-spacing);
+        }
+
+        .day-name {
+            font-weight: bold;
+            text-align: center;
+            padding: 0.5rem;
+        }
+
+        .month-title {
+            text-align: center;
+            margin: 0;
+        }
+        """),
+        # Calendar Header with navigation
+        Header(
+            Div(
+                Button("←", cls="outline", hx_get="/calendar/prev", hx_target="closest article"),
+                H3(f"{month} {year}", cls="month-title"),
+                Button("→", cls="outline", hx_get="/calendar/next", hx_target="closest article"),
+                cls="calendar-header"
+            )
+        ),
+        # Calendar Grid
+        Main(
+            Div(
+                # Day names row
+                *[Div(day, cls="day-name") for day in days_of_week],
+                # Example days (you'll want to generate these based on the actual month)
+                *[Div(str(i), cls="calendar-day")
+                  for i in range(1, 32) if i <= 31],
+                cls="calendar-grid"
+            )
+        )
+    )
+
+from datetime import datetime, timedelta
+import calendar
+
+def get_month_days(year: int, month: int):
+    """Get calendar details for month display"""
+    # Get first day of month and number of days
+    c = calendar.monthcalendar(year, month)
+    month_name = calendar.month_name[month]
+
+    # Get days including proper padding for first week
+    days = []
+    for week in c:
+        days.extend([str(day) if day != 0 else "" for day in week])
+
+    return {
+        'month_name': month_name,
+        'year': year,
+        'days': days
+    }
+
+@rt("/calendar/{direction}")
+def get(direction: str):
+    # You'd store current month in session or query param
+    current = datetime.now()
+    if direction == "next":
+        next_month = current.replace(day=1) + timedelta(days=32)
+        next_month = next_month.replace(day=1)
+        cal_data = get_month_days(next_month.year, next_month.month)
+    else:
+        last_month = current.replace(day=1) - timedelta(days=1)
+        cal_data = get_month_days(last_month.year, last_month.month)
+
+    return calendar_component(**cal_data)
+
+# Route handlers for calendar
+@rt("/calendar/{direction}")
+def get(direction: str):
+    # Here you would implement proper month calculation based on direction
+    return calendar_component("December" if direction == "next" else "October")
+
+
+
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5001))
